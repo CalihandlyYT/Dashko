@@ -34,6 +34,8 @@
         <a href="#reviews">Отзывы</a>
         <a href="#faq">FAQ</a>
         <a href="#contact">Контакты</a>
+        <span id="auth-block"><a href="#" id="auth-nav-link" class="nav-auth-link">Вход</a></span>
+        <span id="auth-nav-user" style="display:none; align-items:center; gap:8px;"><span id="auth-user-span"></span> <button type="button" id="auth-logout" class="btn btn-outline" style="padding:6px 12px; font-size:0.9rem;">Выйти</button></span>
         <a href="https://dikidi.ru/ru/profile/dashko_studio_1318724" class="btn btn-book" target="_blank" rel="noopener">Записаться</a>
       </nav>
       <button class="burger" aria-label="Меню">
@@ -203,8 +205,33 @@
       <div class="container">
         <span class="section-label">Отзывы</span>
         <h2 class="section-title">Что говорят клиенты</h2>
-        <p class="section-desc">Отзывы можно подтянуть с Dikidi или добавить вручную.</p>
-        <div class="reviews-grid">
+        <p class="section-desc">Оставьте отзыв, войдя в аккаунт.</p>
+        <div id="review-form-block" class="review-form-block" style="display:none;">
+          <h3 class="review-form-title">Оставить отзыв</h3>
+          <form id="review-form" class="review-form">
+            <div class="form-group">
+              <label for="review-author-name">Ваше имя</label>
+              <input type="text" id="review-author-name" class="form-input" placeholder="Как к вам обращаться" maxlength="100">
+            </div>
+            <div class="form-group">
+              <label>Оценка</label>
+              <select id="review-rating" class="form-input">
+                <option value="5">★★★★★</option>
+                <option value="4">★★★★☆</option>
+                <option value="3">★★★☆☆</option>
+                <option value="2">★★☆☆☆</option>
+                <option value="1">★☆☆☆☆</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="review-text">Текст отзыва</label>
+              <textarea id="review-text" class="form-input form-textarea" placeholder="Напишите ваш отзыв" rows="3" required></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Отправить отзыв</button>
+            <p id="review-submit-msg" class="form-msg"></p>
+          </form>
+        </div>
+        <div class="reviews-grid" id="reviews-list">
           <blockquote class="review-card">
             <div class="review-stars" aria-hidden="true">★★★★★</div>
             <p class="review-text">Очень довольна результатом! Мастер внимательная, всё аккуратно и красиво. Буду рекомендовать.</p>
@@ -336,6 +363,35 @@
     <a href="https://wa.me/79920090279" class="float-cta-btn float-cta-wa" target="_blank" rel="noopener">WhatsApp</a>
   </div>
 
+  <div id="auth-modal" class="auth-modal" aria-hidden="true">
+    <div class="auth-modal-inner">
+      <button type="button" id="auth-modal-close" class="auth-modal-close" aria-label="Закрыть">×</button>
+      <h2 class="auth-modal-title">Вход / Регистрация</h2>
+      <div class="auth-tabs">
+        <button type="button" id="auth-tab-login" class="auth-tab is-active">Вход</button>
+        <button type="button" id="auth-tab-register" class="auth-tab">Регистрация</button>
+      </div>
+      <form id="auth-form" class="auth-form">
+        <div class="form-group" style="display:none;">
+          <label for="auth-name">Имя</label>
+          <input type="text" id="auth-name" class="form-input" placeholder="Как к вам обращаться">
+        </div>
+        <div class="form-group">
+          <label for="auth-email">Email</label>
+          <input type="email" id="auth-email" class="form-input" placeholder="email@example.com" required>
+        </div>
+        <div class="form-group">
+          <label for="auth-password">Пароль</label>
+          <input type="password" id="auth-password" class="form-input" placeholder="••••••••" required minlength="6">
+        </div>
+        <p id="auth-message" class="form-msg"></p>
+        <button type="submit" class="btn btn-primary btn-block">Войти</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="auth-reviews.js"></script>
   <script src="script.js?v=2"></script>
 </body>
 </html>
