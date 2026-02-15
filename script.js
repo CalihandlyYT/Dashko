@@ -51,4 +51,32 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
   }
+
+  // Gallery lightbox
+  var lightbox = document.getElementById('gallery-lightbox');
+  var lightboxImg = document.getElementById('gallery-lightbox-img');
+  var lightboxClose = document.getElementById('gallery-lightbox-close');
+  if (lightbox && lightboxImg) {
+    document.querySelectorAll('.gallery-img').forEach(function (img) {
+      img.addEventListener('click', function () {
+        lightboxImg.src = img.src;
+        lightboxImg.alt = img.alt;
+        lightbox.setAttribute('aria-hidden', 'false');
+        lightbox.classList.add('is-open');
+        document.body.style.overflow = 'hidden';
+      });
+    });
+    function closeLightbox() {
+      lightbox.classList.remove('is-open');
+      lightbox.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+    }
+    if (lightboxClose) lightboxClose.addEventListener('click', closeLightbox);
+    lightbox.addEventListener('click', function (e) {
+      if (e.target === lightbox) closeLightbox();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && lightbox.classList.contains('is-open')) closeLightbox();
+    });
+  }
 })();
