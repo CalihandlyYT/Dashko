@@ -26,15 +26,15 @@
 
   function getSupabase(cb) {
     if (supabaseClient) { cb(); return; }
-    if (window.supabase && window.supabaseClient.createClient) {
-      supabaseClient = window.supabaseClient.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    if (window.supabase && window.supabase.createClient) {
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       cb();
       return;
     }
     var s = document.createElement('script');
     s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
     s.onload = function () {
-      supabaseClient = window.supabaseClient.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       cb();
     };
     document.head.appendChild(s);
@@ -86,31 +86,27 @@
     });
   }
 
-  getSupabase(function () {
-    supabaseClient.auth.getSession().then(function (_ref) {
-      var data = _ref.data;
-      if (data && data.session) setAuthUI(data.session.user);
-      loadReviews();
+  if (hasConfig) {
+    getSupabase(function () {
+      supabaseClient.auth.getSession().then(function (_ref) {
+        var data = _ref.data;
+        if (data && data.session) setAuthUI(data.session.user);
+        loadReviews();
+      });
+      supabaseClient.auth.onAuthStateChange(function (event, session) {
+        setAuthUI(session ? session.user : null);
+      });
     });
-    supabaseClient.auth.onAuthStateChange(function (event, session) {
-      setAuthUI(session ? session.user : null);
-    });
-  });
+  }
 
   if (authClose) authClose.addEventListener('click', hideAuthModal);
   if (authModal) authModal.addEventListener('click', function (e) { if (e.target === authModal) hideAuthModal(); });
 
   var authLink = document.getElementById('auth-nav-link');
   if (authLink) authLink.addEventListener('click', function (e) { e.preventDefault(); showAuthModal(); });
-  if (!hasConfig) {
-    if (authForm) authForm.style.display = 'none';
-    var hint = document.createElement('p');
-    hint.className = 'form-msg';
-    hint.textContent = 'Вход и отзывы работают после настройки Supabase. Откройте config.js и SUPABASE_SETUP.md.';
-    if (authModal) authModal.querySelector('.auth-modal-inner').appendChild(hint);
-    return;
-  }
+
   if (logoutBtn) logoutBtn.addEventListener('click', function () {
+    if (!hasConfig) return;
     getSupabase(function () {
       supabaseClient.auth.signOut().then(hideAuthModal);
     });
@@ -135,6 +131,10 @@
   if (authForm && authEmail && authPassword) {
     authForm.addEventListener('submit', function (e) {
       e.preventDefault();
+      if (!hasConfig) {
+        setAuthMessage('Чтобы войти, укажите данные Supabase в config.js (см. SUPABASE_SETUP.md).', true);
+        return;
+      }
       var email = authEmail.value.trim();
       var password = authPassword.value;
       var isRegister = authRegTab && authRegTab.classList.contains('is-active');
