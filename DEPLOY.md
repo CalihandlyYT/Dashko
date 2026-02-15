@@ -1,27 +1,29 @@
 # Как выложить сайт в интернет
 
-## В чём была проблема
-
-Сайт лежал в папке `c:\Dev\dashko`, а репозиторий Git — во вложенной папке `Dashko`. Сервисы видели репозиторий в `Dashko` и предлагали подключить его, но файлов сайта там не было.
-
-**Что сделано:** все файлы сайта скопированы в папку `Dashko`. Теперь репозиторий содержит полный сайт.
+Сайт лежит в **корне** репозитория (`index.html`, `styles.css`, `script.js` и т.д.). Пуш делается из папки `c:\Dev\dashko`.
 
 ---
 
 ## Вариант 1: GitHub Pages (бесплатно)
 
-1. Откройте папку **`c:\Dev\dashko\Dashko`** в терминале и отправьте код на GitHub:
+1. Код уже в GitHub. После изменений пушите из корня проекта:
    ```bash
-   cd c:\Dev\dashko\Dashko
+   cd c:\Dev\dashko
    git add .
-   git commit -m "Сайт Dashko Studio"
+   git commit -m "Обновление сайта"
    git push origin main
    ```
 
-2. На GitHub: репозиторий **CalihandlyYT/Dashko** → **Settings** → **Pages** → в блоке Source выберите ветку **main**, папку **/ (root)** → **Save**.
+2. **Важно:** на GitHub откройте репозиторий **CalihandlyYT/Dashko** → **Settings** → **Pages**. В блоке **Build and deployment** → **Source** выберите:
+   - **Deploy from a branch**
+   - Branch: **main**
+   - Folder: **/ (root)** — именно корень, не папку Dashko.
 
-3. Через 1–2 минуты сайт будет доступен по адресу:  
-   **https://calihandlyyt.github.io/Dashko/**
+   Нажмите **Save**. Если была выбрана папка **Dashko**, сайт показывал старую версию; после переключения на root обновится.
+
+3. Подождите 1–2 минуты, обновите страницу с принудительной перезагрузкой (Ctrl+F5 или Cmd+Shift+R), чтобы сбросить кэш.
+
+4. Сайт: **https://calihandlyyt.github.io/Dashko/**
 
 Если репозиторий приватный, в бесплатном плане GitHub Pages не работает — сделайте репозиторий публичным или используйте Netlify.
 
@@ -34,16 +36,12 @@
 2. **Add new site** → **Import an existing project** → **GitHub** → выберите репозиторий **CalihandlyYT/Dashko**.
 
 3. Настройки сборки:
-   - **Base directory:** оставьте пустым или укажите `Dashko`, если Netlify покажет вложенную папку.
-   - **Publish directory:** оставьте пустым (корень репозитория).
-   - **Build command:** оставьте пустым (статический сайт).
+   - **Base directory:** пусто (корень репозитория).
+   - **Publish directory:** пусто.
+   - **Build command:** пусто (статический сайт).
 
-4. Нажмите **Deploy**. Netlify даст ссылку вида `https://random-name.netlify.app`. В настройках сайта можно задать своё доменное имя.
+4. Нажмите **Deploy**. Ссылка будет вида `https://random-name.netlify.app`.
 
 ---
 
-## Если спрашивают «Add this repository?»
-
-Когда сервис пишет: *«The directory ...\Dashko appears to be a Git repository. Would you like to add this repository instead?»* — нажмите **«add this repository»**. Подключайте именно папку **Dashko** (в ней теперь лежит весь сайт и репозиторий).
-
-Дальше при деплое указывайте корень этого репозитория — в нём лежат `index.html`, `styles.css` и остальные файлы.
+**Примечание:** Вход и отзывы (Flask) на GitHub Pages и Netlify не работают — там только статика. Форма входа и отзывы будут видны, но запросы к `/api/` не сработают, пока не поднимете бэкенд отдельно (например на Timeweb, Railway, Render).
