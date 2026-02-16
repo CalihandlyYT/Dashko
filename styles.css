@@ -354,6 +354,42 @@ ul { list-style: none; margin: 0; padding: 0; }
   line-height: 1.5;
 }
 
+/* --- Studio (Наша студия) --- */
+.studio {
+  padding: 100px 0;
+  background: var(--color-surface);
+}
+
+.studio-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-top: 24px;
+}
+
+.studio-item {
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.studio-item img {
+  width: 100%;
+  height: 260px;
+  object-fit: cover;
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .studio-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .studio-item img {
+    height: 220px;
+  }
+}
+
 /* --- Gallery --- */
 .gallery {
   padding: 100px 0;
