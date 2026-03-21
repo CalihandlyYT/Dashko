@@ -1173,6 +1173,13 @@ ul { list-style: none; margin: 0; padding: 0; }
 
 .float-cta-book:hover { background: var(--color-accent-dark); color: #fff; }
 
+.float-cta-tg {
+  background: #2aabee;
+  color: #fff;
+}
+
+.float-cta-tg:hover { background: #1f9ddd; color: #fff; }
+
 .float-cta-wa {
   background: #25d366;
   color: #fff;
@@ -1233,6 +1240,8 @@ ul { list-style: none; margin: 0; padding: 0; }
   .gallery-grid { grid-template-columns: repeat(2, 1fr); }
 
   .float-cta { display: flex; }
+  .float-cta { gap: 8px; padding: 10px 12px; }
+  .float-cta-btn { max-width: none; padding: 12px 10px; font-size: 0.88rem; }
 
   .back-to-top { bottom: 88px; right: 16px; width: 44px; height: 44px; font-size: 1.1rem; }
 }
