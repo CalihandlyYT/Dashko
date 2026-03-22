@@ -35,7 +35,12 @@
         <a href="#faq">FAQ</a>
         <a href="#contact">Контакты</a>
         <span id="auth-block"><a href="#" id="auth-nav-link" class="nav-auth-link">Вход</a></span>
-        <span id="auth-nav-user" style="display:none; align-items:center; gap:8px;"><span id="auth-user-span"></span> <button type="button" id="auth-logout" class="btn btn-outline" style="padding:6px 12px; font-size:0.9rem;">Выйти</button></span>
+        <span id="auth-nav-user" class="auth-nav-user" style="display:none;">
+          <img id="auth-nav-avatar" class="auth-nav-avatar-img" alt="" width="32" height="32" decoding="async">
+          <a href="#" id="profile-nav-link" class="nav-auth-link">Профиль</a>
+          <a href="admin.html" id="admin-nav-link" class="nav-auth-link" style="display:none;">Админ</a>
+          <button type="button" id="auth-logout" class="btn btn-outline" style="padding:6px 12px; font-size:0.9rem;">Выйти</button>
+        </span>
         <a href="https://dikidi.ru/ru/profile/dashko_studio_1318724" class="btn btn-book" target="_blank" rel="noopener">Записаться</a>
       </nav>
       <button class="burger" aria-label="Меню">
@@ -332,8 +337,9 @@
           <h3 class="review-form-title">Оставить отзыв</h3>
           <form id="review-form" class="review-form">
             <div class="form-group">
-              <label for="review-author-name">Ваше имя</label>
-              <input type="text" id="review-author-name" class="form-input" placeholder="Как к вам обращаться" maxlength="100">
+              <label for="review-author-name">Имя в отзыве</label>
+              <input type="text" id="review-author-name" class="form-input" placeholder="Подставится из профиля" maxlength="100">
+              <p class="review-name-hint" id="review-name-hint" style="display:none;font-size:0.85rem;color:var(--color-text-soft);margin-top:6px;">Отзыв будет опубликован от этого имени (можно изменить).</p>
             </div>
             <div class="form-group">
               <label>Оценка</label>
@@ -506,6 +512,45 @@
         </div>
         <p id="auth-message" class="form-msg"></p>
         <button type="submit" class="btn btn-primary btn-block">Войти</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="profile-modal" class="auth-modal profile-modal" aria-hidden="true">
+    <div class="auth-modal-inner profile-modal-inner">
+      <button type="button" id="profile-modal-close" class="auth-modal-close" aria-label="Закрыть">×</button>
+      <h2 class="auth-modal-title">Профиль</h2>
+      <p id="profile-admin-badge" class="profile-admin-badge" style="display:none;">Администратор — доступна <a href="admin.html">админ-панель</a></p>
+      <form id="profile-form" class="auth-form profile-form">
+        <div class="profile-avatar-row">
+          <div class="profile-avatar-preview" id="profile-avatar-preview-wrap">
+            <img id="profile-avatar-preview-img" alt="">
+          </div>
+          <div class="profile-avatar-actions">
+            <label for="profile-avatar-file" class="btn btn-outline btn-sm">Выбрать фото</label>
+            <input type="file" id="profile-avatar-file" class="visually-hidden" accept="image/jpeg,image/png,image/webp,image/gif">
+            <button type="button" id="profile-avatar-clear" class="btn btn-outline btn-sm">Убрать фото</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="profile-name">Имя</label>
+          <input type="text" id="profile-name" class="form-input" maxlength="100" autocomplete="name">
+        </div>
+        <div class="form-group">
+          <label for="profile-email">Email</label>
+          <input type="email" id="profile-email" class="form-input" required autocomplete="email">
+        </div>
+        <p class="profile-password-hint">Смена пароля (необязательно)</p>
+        <div class="form-group">
+          <label for="profile-current-password">Текущий пароль</label>
+          <input type="password" id="profile-current-password" class="form-input" placeholder="Если меняете пароль" autocomplete="current-password">
+        </div>
+        <div class="form-group">
+          <label for="profile-new-password">Новый пароль</label>
+          <input type="password" id="profile-new-password" class="form-input" placeholder="Не менее 6 символов" autocomplete="new-password" minlength="6">
+        </div>
+        <p id="profile-message" class="form-msg"></p>
+        <button type="submit" class="btn btn-primary btn-block">Сохранить</button>
       </form>
     </div>
   </div>

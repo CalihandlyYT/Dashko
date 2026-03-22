@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Админ-панель — Dashko Studio</title>
+  <link rel="icon" href="favicon.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=3">
+  <style>
+    .admin-page { padding: 40px 0 80px; min-height: 60vh; background: var(--color-bg); }
+    .admin-page h1 { font-family: var(--font-display); font-size: 1.75rem; margin: 0 0 8px; }
+    .admin-page .admin-lead { color: var(--color-text-soft); margin-bottom: 28px; font-size: 0.95rem; }
+    .admin-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; margin-bottom: 32px; }
+    .admin-stat-card { background: var(--color-surface); padding: 20px; border-radius: var(--radius); box-shadow: var(--shadow); }
+    .admin-stat-card span { display: block; font-size: 0.85rem; color: var(--color-text-soft); }
+    .admin-stat-card strong { font-size: 1.75rem; color: var(--color-accent); }
+    .admin-table-wrap { overflow-x: auto; background: var(--color-surface); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 32px; }
+    .admin-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    .admin-table th, .admin-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid rgba(44,42,40,0.08); vertical-align: top; }
+    .admin-table th { font-weight: 600; background: rgba(44,42,40,0.04); }
+    .admin-review-text { max-width: 280px; word-break: break-word; }
+    .btn-admin-delete { padding: 6px 10px; font-size: 0.85rem; background: #c0392b; color: #fff; border: none; border-radius: var(--radius); cursor: pointer; font-family: var(--font-body); }
+    .btn-admin-delete:hover { background: #a93226; }
+    #admin-denied { max-width: 560px; padding: 24px; background: var(--color-surface); border-radius: var(--radius); box-shadow: var(--shadow); }
+    #admin-denied a { color: var(--color-accent); font-weight: 500; }
+    #admin-load-error { color: #c00; margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="container header-inner">
+      <a href="index.html" class="logo">Dashko Studio</a>
+      <nav class="nav">
+        <a href="index.html">На сайт</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="admin-page">
+    <div class="container">
+      <div id="admin-denied" style="display:none;">
+        <h1>Админ-панель</h1>
+        <p id="admin-load-error"></p>
+        <p>Войдите на главной странице под учётной записью, email которой указан в переменной окружения <code>ADMIN_EMAIL</code> на сервере.</p>
+        <p><a href="index.html">Перейти на главную</a></p>
+      </div>
+
+      <div id="admin-app" style="display:none;">
+        <h1>Админ-панель</h1>
+        <p class="admin-lead">Пользователи и отзывы (локальный сервер).</p>
+
+        <div class="admin-stats">
+          <div class="admin-stat-card">
+            <span>Пользователей</span>
+            <strong id="stat-users">—</strong>
+          </div>
+          <div class="admin-stat-card">
+            <span>Отзывов</span>
+            <strong id="stat-reviews">—</strong>
+          </div>
+        </div>
+
+        <h2 class="section-title" style="font-size:1.25rem;margin-bottom:12px;">Пользователи</h2>
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Email</th>
+                <th>Имя</th>
+                <th>Админ</th>
+                <th>Регистрация</th>
+              </tr>
+            </thead>
+            <tbody id="admin-users-tbody"></tbody>
+          </table>
+        </div>
+
+        <h2 class="section-title" style="font-size:1.25rem;margin-bottom:12px;">Отзывы</h2>
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Автор</th>
+                <th>Оценка</th>
+                <th>Текст</th>
+                <th>Email аккаунта</th>
+                <th>Дата</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="admin-reviews-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer" style="padding: 40px 0;">
+    <div class="container">
+      <p class="footer-copy">© Dashko Studio · <a href="index.html">На сайт</a></p>
+    </div>
+  </footer>
+
+  <script src="admin.js"></script>
+</body>
+</html>
