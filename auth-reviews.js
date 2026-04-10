@@ -90,6 +90,24 @@
     }
   }
 
+  function updateMuteBanner(user) {
+    var el = document.getElementById('mute-banner');
+    if (!el) return;
+    if (user && user.is_muted) {
+      el.style.display = 'block';
+      var until = user.muted_until || '';
+      try {
+        var d = new Date(until);
+        if (!isNaN(d.getTime())) until = d.toLocaleString('ru-RU');
+      } catch (e) { /* keep raw */ }
+      el.textContent = 'Вам временно запрещено оставлять отзывы (до ' + until + ' по времени сервера).';
+    } else {
+      el.style.display = 'none';
+    }
+    var reviewSubmit = reviewForm ? reviewForm.querySelector('button[type="submit"]') : null;
+    if (reviewSubmit) reviewSubmit.disabled = !!(user && user.is_muted);
+  }
+
   function setAuthUI(user) {
     currentUser = user || null;
     if (authBlock) authBlock.style.display = user ? 'none' : 'inline-block';
@@ -100,6 +118,7 @@
     if (adminNavLink) adminNavLink.style.display = user && user.is_admin ? 'inline' : 'none';
     if (reviewFormBlock) reviewFormBlock.style.display = user ? 'block' : 'none';
     applyReviewAuthorFromProfile();
+    updateMuteBanner(user);
   }
 
   var API_UNAVAILABLE_MSG = 'Вход и отзывы работают только при запуске сайта на своём компьютере: в папке проекта выполните python main.py и откройте http://127.0.0.1:8000 — на GitHub Pages сервер с базой данных не запускается.';
@@ -132,6 +151,10 @@
 
   function loadUser() {
     api('GET', '/me').then(function (res) {
+      if (res.data && res.data.banned) {
+        setAuthUI(null);
+        return;
+      }
       var u = res.data && res.data.user ? res.data.user : null;
       setAuthUI(u);
     }).catch(function () { /* тихо */ });

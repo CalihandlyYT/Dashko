@@ -8,25 +8,55 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=3">
+  <link rel="stylesheet" href="styles.css?v=4">
   <style>
-    .admin-page { padding: 40px 0 80px; min-height: 60vh; background: var(--color-bg); }
+    .admin-page { padding: 32px 0 80px; min-height: 60vh; background: var(--color-bg); }
     .admin-page h1 { font-family: var(--font-display); font-size: 1.75rem; margin: 0 0 8px; }
-    .admin-page .admin-lead { color: var(--color-text-soft); margin-bottom: 28px; font-size: 0.95rem; }
-    .admin-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; margin-bottom: 32px; }
-    .admin-stat-card { background: var(--color-surface); padding: 20px; border-radius: var(--radius); box-shadow: var(--shadow); }
-    .admin-stat-card span { display: block; font-size: 0.85rem; color: var(--color-text-soft); }
-    .admin-stat-card strong { font-size: 1.75rem; color: var(--color-accent); }
-    .admin-table-wrap { overflow-x: auto; background: var(--color-surface); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 32px; }
-    .admin-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-    .admin-table th, .admin-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid rgba(44,42,40,0.08); vertical-align: top; }
-    .admin-table th { font-weight: 600; background: rgba(44,42,40,0.04); }
-    .admin-review-text { max-width: 280px; word-break: break-word; }
-    .btn-admin-delete { padding: 6px 10px; font-size: 0.85rem; background: #c0392b; color: #fff; border: none; border-radius: var(--radius); cursor: pointer; font-family: var(--font-body); }
-    .btn-admin-delete:hover { background: #a93226; }
+    .admin-page .admin-lead { color: var(--color-text-soft); margin-bottom: 20px; font-size: 0.95rem; }
+    .admin-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; border-bottom: 1px solid rgba(44,42,40,0.12); padding-bottom: 12px; }
+    .admin-tab { padding: 10px 16px; border: none; background: transparent; font-family: var(--font-body); font-size: 0.95rem; cursor: pointer; border-radius: var(--radius); color: var(--color-text-soft); }
+    .admin-tab:hover { background: rgba(44,42,40,0.06); color: var(--color-text); }
+    .admin-tab.is-active { background: var(--color-accent); color: #fff; }
+    .admin-panel { display: none; }
+    .admin-panel.is-visible { display: block; }
+    .admin-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .admin-stat-card { background: var(--color-surface); padding: 16px; border-radius: var(--radius); box-shadow: var(--shadow); }
+    .admin-stat-card span { display: block; font-size: 0.8rem; color: var(--color-text-soft); }
+    .admin-stat-card strong { font-size: 1.5rem; color: var(--color-accent); }
+    .admin-toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 16px; }
+    .admin-toolbar input[type="search"], .admin-toolbar input[type="text"] { padding: 8px 12px; border-radius: var(--radius); border: 1px solid rgba(44,42,40,0.2); font-family: var(--font-body); min-width: 200px; }
+    .admin-table-wrap { overflow-x: auto; background: var(--color-surface); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 24px; max-height: 70vh; overflow-y: auto; }
+    .admin-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .admin-table th, .admin-table td { padding: 8px 10px; text-align: left; border-bottom: 1px solid rgba(44,42,40,0.08); vertical-align: top; }
+    .admin-table th { font-weight: 600; background: rgba(44,42,40,0.04); position: sticky; top: 0; z-index: 1; }
+    .admin-review-text { max-width: 220px; word-break: break-word; }
+    .admin-user-actions { display: flex; flex-wrap: wrap; gap: 4px; max-width: 320px; }
+    .btn-admin { padding: 5px 8px; font-size: 0.75rem; border: none; border-radius: 6px; cursor: pointer; font-family: var(--font-body); }
+    .btn-admin-ban { background: #c0392b; color: #fff; }
+    .btn-admin-ban:hover { background: #a93226; }
+    .btn-admin-ok { background: #27ae60; color: #fff; }
+    .btn-admin-ok:hover { background: #219a52; }
+    .btn-admin-muted { background: #8e44ad; color: #fff; }
+    .btn-admin-muted:hover { background: #7d3c98; }
+    .btn-admin-neutral { background: rgba(44,42,40,0.12); color: var(--color-text); }
+    .btn-admin-delete { background: #c0392b; color: #fff; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 500; }
+    .badge-bad { background: #fadbd8; color: #922b21; }
+    .badge-warn { background: #ebdef0; color: #6c3483; }
+    .badge-ok { background: #d5f5e3; color: #1e8449; }
+    .admin-tools-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .admin-tool-card { background: var(--color-surface); padding: 20px; border-radius: var(--radius); box-shadow: var(--shadow); }
+    .admin-tool-card h3 { margin: 0 0 12px; font-size: 1.05rem; }
+    .admin-tool-card p { font-size: 0.9rem; color: var(--color-text-soft); margin: 0 0 12px; }
+    .admin-tool-card a, .admin-tool-card button.linkish { display: inline-block; margin-right: 8px; margin-bottom: 8px; color: var(--color-accent); font-weight: 500; cursor: pointer; background: none; border: none; padding: 0; font-size: 0.95rem; text-decoration: underline; font-family: var(--font-body); }
+    .admin-code { font-size: 0.8rem; background: rgba(44,42,40,0.06); padding: 12px; border-radius: 8px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; }
     #admin-denied { max-width: 560px; padding: 24px; background: var(--color-surface); border-radius: var(--radius); box-shadow: var(--shadow); }
     #admin-denied a { color: var(--color-accent); font-weight: 500; }
     #admin-load-error { color: #c00; margin-top: 12px; }
+    #admin-toast { position: fixed; bottom: 24px; right: 24px; max-width: 360px; padding: 14px 18px; background: #2c2a28; color: #fff; border-radius: var(--radius); font-size: 0.9rem; z-index: 9999; display: none; box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
+    #admin-toast.is-error { background: #922b21; }
+    .admin-bulk-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+    .admin-checkbox { width: 16px; height: 16px; }
   </style>
 </head>
 <body>
@@ -50,55 +80,112 @@
 
       <div id="admin-app" style="display:none;">
         <h1>Админ-панель</h1>
-        <p class="admin-lead">Пользователи и отзывы (локальный сервер).</p>
+        <p class="admin-lead">Модерация пользователей и отзывов, экспорт, журнал действий (локальный сервер).</p>
 
-        <div class="admin-stats">
-          <div class="admin-stat-card">
-            <span>Пользователей</span>
-            <strong id="stat-users">—</strong>
+        <div class="admin-tabs" role="tablist">
+          <button type="button" class="admin-tab is-active" data-tab="overview">Обзор</button>
+          <button type="button" class="admin-tab" data-tab="users">Пользователи</button>
+          <button type="button" class="admin-tab" data-tab="reviews">Отзывы</button>
+          <button type="button" class="admin-tab" data-tab="tools">Инструменты</button>
+          <button type="button" class="admin-tab" data-tab="audit">Журнал</button>
+        </div>
+
+        <section id="panel-overview" class="admin-panel is-visible" data-panel="overview">
+          <div class="admin-stats" id="admin-stats-grid"></div>
+          <p class="section-desc" style="font-size:0.9rem;color:var(--color-text-soft);">Используйте вкладки для поиска пользователей, мута, бана и массового удаления отзывов.</p>
+        </section>
+
+        <section id="panel-users" class="admin-panel" data-panel="users">
+          <div class="admin-toolbar">
+            <input type="search" id="admin-user-search" placeholder="Поиск по email или имени…" autocomplete="off">
+            <button type="button" class="btn btn-primary" id="admin-user-search-btn">Найти</button>
+            <button type="button" class="btn btn-outline" id="admin-user-reload">Все</button>
           </div>
-          <div class="admin-stat-card">
-            <span>Отзывов</span>
-            <strong id="stat-reviews">—</strong>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Email</th>
+                  <th>Имя</th>
+                  <th>Статус</th>
+                  <th>Регистрация</th>
+                  <th>Действия</th>
+                </tr>
+              </thead>
+              <tbody id="admin-users-tbody"></tbody>
+            </table>
           </div>
-        </div>
+        </section>
 
-        <h2 class="section-title" style="font-size:1.25rem;margin-bottom:12px;">Пользователи</h2>
-        <div class="admin-table-wrap">
-          <table class="admin-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Email</th>
-                <th>Имя</th>
-                <th>Админ</th>
-                <th>Регистрация</th>
-              </tr>
-            </thead>
-            <tbody id="admin-users-tbody"></tbody>
-          </table>
-        </div>
+        <section id="panel-reviews" class="admin-panel" data-panel="reviews">
+          <div class="admin-bulk-bar">
+            <label><input type="checkbox" id="admin-reviews-select-all" class="admin-checkbox"> Выбрать все на странице</label>
+            <button type="button" class="btn-admin btn-admin-delete" id="admin-bulk-delete-reviews">Удалить выбранные</button>
+          </div>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th style="width:36px;"></th>
+                  <th>ID</th>
+                  <th>Автор</th>
+                  <th>★</th>
+                  <th>Текст</th>
+                  <th>Email</th>
+                  <th>Дата</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="admin-reviews-tbody"></tbody>
+            </table>
+          </div>
+        </section>
 
-        <h2 class="section-title" style="font-size:1.25rem;margin-bottom:12px;">Отзывы</h2>
-        <div class="admin-table-wrap">
-          <table class="admin-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Автор</th>
-                <th>Оценка</th>
-                <th>Текст</th>
-                <th>Email аккаунта</th>
-                <th>Дата</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="admin-reviews-tbody"></tbody>
-          </table>
-        </div>
+        <section id="panel-tools" class="admin-panel" data-panel="tools">
+          <div class="admin-tools-grid">
+            <div class="admin-tool-card">
+              <h3>Экспорт CSV</h3>
+              <p>Скачать таблицы для Excel / анализа.</p>
+              <a href="/api/admin/export/users.csv" id="export-users-csv">Пользователи (CSV)</a>
+              <a href="/api/admin/export/reviews.csv" id="export-reviews-csv">Отзывы (CSV)</a>
+            </div>
+            <div class="admin-tool-card">
+              <h3>Опасная зона</h3>
+              <p>Удалить <strong>все</strong> отзывы из базы. Пользователи останутся.</p>
+              <button type="button" class="linkish" id="admin-clear-all-reviews">Очистить все отзывы…</button>
+            </div>
+            <div class="admin-tool-card">
+              <h3>Сервер</h3>
+              <p id="admin-server-info-lead">Загрузка…</p>
+              <div id="admin-server-info-body" class="admin-code"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="panel-audit" class="admin-panel" data-panel="audit">
+          <p class="section-desc" style="margin-bottom:12px;font-size:0.9rem;">Последние действия администраторов.</p>
+          <div class="admin-table-wrap" style="max-height:65vh;">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Время</th>
+                  <th>Кто</th>
+                  <th>Действие</th>
+                  <th>Цель</th>
+                  <th>Детали</th>
+                </tr>
+              </thead>
+              <tbody id="admin-audit-tbody"></tbody>
+            </table>
+          </div>
+        </section>
       </div>
     </div>
   </main>
+
+  <div id="admin-toast" role="status"></div>
 
   <footer class="footer" style="padding: 40px 0;">
     <div class="container">
@@ -106,6 +193,6 @@
     </div>
   </footer>
 
-  <script src="admin.js"></script>
+  <script src="admin.js?v=2"></script>
 </body>
 </html>

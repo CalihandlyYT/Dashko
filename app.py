@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 """Сервер входа, регистрации и отзывов для Dashko Studio (без внешних сервисов)."""
 
+import csv
+import io
 import os
 import sqlite3
+import sys
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 from pathlib import Path
 
-from flask import Flask, request, jsonify, send_from_directory, session
+from flask import Flask, request, jsonify, send_from_directory, session, Response
 
 app = Flask(__name__, static_folder=".", static_url_path="")
 app.secret_key = os.environ.get("SECRET_KEY", "dashko-dev-secret-change-in-production")
@@ -44,6 +48,40 @@ def init_db():
         """)
     _migrate_users_avatar()
     _migrate_users_is_admin()
+    _migrate_users_moderation()
+    _migrate_admin_audit()
+
+
+def _migrate_users_moderation():
+    with get_db() as conn:
+        cols = {row[1] for row in conn.execute("PRAGMA table_info(users)")}
+        if "banned" not in cols:
+            conn.execute("ALTER TABLE users ADD COLUMN banned INTEGER NOT NULL DEFAULT 0")
+            conn.commit()
+        cols = {row[1] for row in conn.execute("PRAGMA table_info(users)")}
+        if "banned_reason" not in cols:
+            conn.execute("ALTER TABLE users ADD COLUMN banned_reason TEXT")
+            conn.commit()
+        cols = {row[1] for row in conn.execute("PRAGMA table_info(users)")}
+        if "muted_until" not in cols:
+            conn.execute("ALTER TABLE users ADD COLUMN muted_until TEXT")
+            conn.commit()
+
+
+def _migrate_admin_audit():
+    with get_db() as conn:
+        conn.executescript("""
+            CREATE TABLE IF NOT EXISTS admin_audit (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                admin_id INTEGER NOT NULL,
+                action TEXT NOT NULL,
+                target_user_id INTEGER,
+                detail TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (admin_id) REFERENCES users(id)
+            );
+        """)
+        conn.commit()
 
 
 def _migrate_users_is_admin():
@@ -85,6 +123,57 @@ def sync_admin_flag(user_id: int, email: str) -> None:
         conn.commit()
 
 
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def utc_iso(dt: datetime | None = None) -> str:
+    d = dt or utc_now()
+    if d.tzinfo is None:
+        d = d.replace(tzinfo=timezone.utc)
+    return d.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def muted_still_active(muted_until: str | None) -> bool:
+    if not muted_until:
+        return False
+    try:
+        s = muted_until.strip().replace("Z", "+00:00")
+        end = datetime.fromisoformat(s)
+        if end.tzinfo is None:
+            end = end.replace(tzinfo=timezone.utc)
+        return end > utc_now()
+    except (ValueError, TypeError):
+        return False
+
+
+def log_admin_action(admin_id: int, action: str, target_user_id: int | None = None, detail: str | None = None) -> None:
+    try:
+        with get_db() as conn:
+            conn.execute(
+                "INSERT INTO admin_audit (admin_id, action, target_user_id, detail) VALUES (?, ?, ?, ?)",
+                (admin_id, action, target_user_id, detail),
+            )
+            conn.commit()
+    except Exception:
+        pass
+
+
+def _user_public(row):
+    """Сериализация пользователя для API (без пароля)."""
+    d = dict(row)
+    mu = d.get("muted_until")
+    return {
+        "id": d["id"],
+        "email": d["email"],
+        "name": d.get("name"),
+        "avatar": d.get("avatar") or None,
+        "is_admin": bool(d.get("is_admin")),
+        "muted_until": mu if muted_still_active(mu) else None,
+        "is_muted": muted_still_active(mu),
+    }
+
+
 def admin_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -100,6 +189,14 @@ def admin_required(f):
         return f(*args, **kwargs)
 
     return decorated
+
+
+def _fetch_user_row(conn, user_id: int):
+    return conn.execute(
+        """SELECT id, email, name, avatar, is_admin, banned, muted_until
+           FROM users WHERE id = ?""",
+        (user_id,),
+    ).fetchone()
 
 
 # --- API ---
@@ -142,31 +239,24 @@ def api_login():
         return jsonify({"error": "Укажите email и пароль"}), 400
     with get_db() as conn:
         row = conn.execute(
-            "SELECT id, password_hash, email, name, avatar, is_admin FROM users WHERE email = ?",
+            "SELECT id, password_hash, email, name, avatar, is_admin, banned, banned_reason, muted_until FROM users WHERE email = ?",
             (email,),
         ).fetchone()
     if not row or not check_password(password, row["password_hash"]):
         return jsonify({"error": "Неверный email или пароль"}), 401
+    if row["banned"]:
+        return jsonify(
+            {
+                "error": "Аккаунт заблокирован"
+                + (f": {row['banned_reason']}" if row["banned_reason"] else ""),
+                "banned": True,
+            }
+        ), 403
     session["user_id"] = row["id"]
     sync_admin_flag(row["id"], row["email"])
     with get_db() as conn:
-        row = conn.execute(
-            "SELECT id, email, name, avatar, is_admin FROM users WHERE id = ?",
-            (session["user_id"],),
-        ).fetchone()
+        row = _fetch_user_row(conn, session["user_id"])
     return jsonify({"user": _user_public(row)})
-
-
-def _user_public(row):
-    """Сериализация пользователя для API (без пароля)."""
-    d = dict(row)
-    return {
-        "id": d["id"],
-        "email": d["email"],
-        "name": d.get("name"),
-        "avatar": d.get("avatar") or None,
-        "is_admin": bool(d.get("is_admin")),
-    }
 
 
 @app.route("/api/profile", methods=["PATCH"])
@@ -186,12 +276,15 @@ def api_profile_patch():
 
     with get_db() as conn:
         row = conn.execute(
-            "SELECT id, email, name, password_hash, avatar, is_admin FROM users WHERE id = ?",
+            "SELECT id, email, name, password_hash, avatar, is_admin, banned, muted_until FROM users WHERE id = ?",
             (user_id,),
         ).fetchone()
         if not row:
             session.pop("user_id", None)
             return jsonify({"error": "Пользователь не найден"}), 404
+        if row["banned"]:
+            session.pop("user_id", None)
+            return jsonify({"error": "Аккаунт заблокирован", "banned": True}), 403
 
         updates = []
         params = []
@@ -229,16 +322,10 @@ def api_profile_patch():
             )
             conn.commit()
 
-        row2 = conn.execute(
-            "SELECT id, email, name, avatar, is_admin FROM users WHERE id = ?",
-            (user_id,),
-        ).fetchone()
+        row2 = _fetch_user_row(conn, user_id)
     sync_admin_flag(user_id, row2["email"])
     with get_db() as conn:
-        row2 = conn.execute(
-            "SELECT id, email, name, avatar, is_admin FROM users WHERE id = ?",
-            (user_id,),
-        ).fetchone()
+        row2 = _fetch_user_row(conn, user_id)
     return jsonify({"user": _user_public(row2)})
 
 
@@ -255,11 +342,15 @@ def api_me():
         return jsonify({"user": None})
     with get_db() as conn:
         row = conn.execute(
-            "SELECT id, email, name, avatar, is_admin FROM users WHERE id = ?", (user_id,)
+            "SELECT id, email, name, avatar, is_admin, banned, muted_until FROM users WHERE id = ?",
+            (user_id,),
         ).fetchone()
     if not row:
         session.pop("user_id", None)
         return jsonify({"user": None})
+    if row["banned"]:
+        session.pop("user_id", None)
+        return jsonify({"user": None, "banned": True})
     return jsonify({"user": _user_public(row)})
 
 
@@ -274,8 +365,27 @@ def api_reviews_list():
 
 @app.route("/api/reviews", methods=["POST"])
 def api_reviews_create():
-    if not session.get("user_id"):
+    uid = session.get("user_id")
+    if not uid:
         return jsonify({"error": "Войдите в аккаунт"}), 401
+    with get_db() as conn:
+        urow = conn.execute(
+            "SELECT banned, muted_until FROM users WHERE id = ?", (uid,)
+        ).fetchone()
+    if not urow:
+        session.pop("user_id", None)
+        return jsonify({"error": "Пользователь не найден"}), 401
+    if urow["banned"]:
+        session.pop("user_id", None)
+        return jsonify({"error": "Аккаунт заблокирован", "banned": True}), 403
+    if muted_still_active(urow["muted_until"]):
+        return jsonify(
+            {
+                "error": "Вам временно запрещено оставлять отзывы (мут). Попробуйте позже.",
+                "muted": True,
+                "muted_until": urow["muted_until"],
+            }
+        ), 403
     data = request.get_json() or {}
     author_name = (data.get("author_name") or "").strip()
     rating = min(5, max(1, int(data.get("rating") or 5)))
@@ -302,17 +412,83 @@ def api_admin_stats():
     with get_db() as conn:
         users_n = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
         reviews_n = conn.execute("SELECT COUNT(*) FROM reviews").fetchone()[0]
-    return jsonify({"users": users_n, "reviews": reviews_n})
+        banned_n = conn.execute("SELECT COUNT(*) FROM users WHERE banned = 1").fetchone()[0]
+        admins_n = conn.execute("SELECT COUNT(*) FROM users WHERE is_admin = 1").fetchone()[0]
+        row_avg = conn.execute("SELECT AVG(rating) FROM reviews").fetchone()[0]
+        avg_rating = round(float(row_avg), 2) if row_avg is not None else 0
+        reg_7 = conn.execute(
+            """SELECT COUNT(*) FROM users
+               WHERE datetime(created_at) >= datetime('now', '-7 days')"""
+        ).fetchone()[0]
+        rev_7 = conn.execute(
+            """SELECT COUNT(*) FROM reviews
+               WHERE datetime(created_at) >= datetime('now', '-7 days')"""
+        ).fetchone()[0]
+        mu_rows = conn.execute(
+            "SELECT muted_until FROM users WHERE muted_until IS NOT NULL"
+        ).fetchall()
+    muted_active = sum(1 for r in mu_rows if muted_still_active(r["muted_until"]))
+    db_bytes = DB_PATH.stat().st_size if DB_PATH.exists() else 0
+    return jsonify(
+        {
+            "users": users_n,
+            "reviews": reviews_n,
+            "banned": banned_n,
+            "admins": admins_n,
+            "muted_active": muted_active,
+            "avg_rating": avg_rating,
+            "registered_last_7_days": reg_7,
+            "reviews_last_7_days": rev_7,
+            "db_size_bytes": db_bytes,
+            "python_version": sys.version.split()[0],
+        }
+    )
+
+
+@app.route("/api/admin/server-info", methods=["GET"])
+@admin_required
+def api_admin_server_info():
+    return jsonify(
+        {
+            "python": sys.version,
+            "db_path": str(DB_PATH.resolve()),
+            "db_size_bytes": DB_PATH.stat().st_size if DB_PATH.exists() else 0,
+            "admin_email_configured": bool(admin_email()),
+        }
+    )
 
 
 @app.route("/api/admin/users", methods=["GET"])
 @admin_required
 def api_admin_users():
+    q = (request.args.get("q") or "").strip().lower()
     with get_db() as conn:
-        rows = conn.execute(
-            "SELECT id, email, name, is_admin, created_at FROM users ORDER BY id ASC"
-        ).fetchall()
-    return jsonify({"users": [dict(r) for r in rows]})
+        if q:
+            like = f"%{q}%"
+            rows = conn.execute(
+                """
+                SELECT id, email, name, is_admin, created_at, banned, banned_reason, muted_until
+                FROM users
+                WHERE lower(email) LIKE ? OR lower(COALESCE(name, '')) LIKE ?
+                ORDER BY id ASC
+                """,
+                (like, like),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                """
+                SELECT id, email, name, is_admin, created_at, banned, banned_reason, muted_until
+                FROM users ORDER BY id ASC
+                """
+            ).fetchall()
+    out = []
+    for r in rows:
+        d = dict(r)
+        d["is_admin"] = bool(d["is_admin"])
+        d["banned"] = bool(d["banned"])
+        d["muted_active"] = muted_still_active(d.get("muted_until"))
+        out.append(d)
+    return jsonify({"users": out})
 
 
 @app.route("/api/admin/reviews", methods=["GET"])
@@ -334,12 +510,221 @@ def api_admin_reviews():
 @app.route("/api/admin/reviews/<int:review_id>", methods=["DELETE"])
 @admin_required
 def api_admin_review_delete(review_id):
+    admin_id = session.get("user_id")
     with get_db() as conn:
         cur = conn.execute("DELETE FROM reviews WHERE id = ?", (review_id,))
         conn.commit()
         if cur.rowcount == 0:
             return jsonify({"error": "Отзыв не найден"}), 404
+    log_admin_action(admin_id, "review_delete", None, f"review_id={review_id}")
     return jsonify({"ok": True})
+
+
+@app.route("/api/admin/users/<int:user_id>", methods=["PATCH", "DELETE"])
+@admin_required
+def api_admin_user(user_id):
+    admin_id = session.get("user_id")
+    if user_id == admin_id:
+        return jsonify({"error": "Нельзя применить к своей учётной записи"}), 400
+
+    with get_db() as conn:
+        target = conn.execute(
+            "SELECT id, email, is_admin, banned, muted_until FROM users WHERE id = ?",
+            (user_id,),
+        ).fetchone()
+        if not target:
+            return jsonify({"error": "Пользователь не найден"}), 404
+        if target["is_admin"]:
+            return jsonify({"error": "Нельзя модерировать другого администратора"}), 403
+
+    if request.method == "DELETE":
+        with get_db() as conn:
+            conn.execute("DELETE FROM reviews WHERE user_id = ?", (user_id,))
+            conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
+            conn.commit()
+        log_admin_action(admin_id, "user_delete", user_id, target["email"])
+        return jsonify({"ok": True})
+
+    data = request.get_json() or {}
+
+    if data.get("unban"):
+        with get_db() as conn:
+            conn.execute(
+                "UPDATE users SET banned = 0, banned_reason = NULL WHERE id = ?",
+                (user_id,),
+            )
+            conn.commit()
+        log_admin_action(admin_id, "user_unban", user_id, None)
+        return jsonify({"ok": True})
+
+    if data.get("unmute"):
+        with get_db() as conn:
+            conn.execute("UPDATE users SET muted_until = NULL WHERE id = ?", (user_id,))
+            conn.commit()
+        log_admin_action(admin_id, "user_unmute", user_id, None)
+        return jsonify({"ok": True})
+
+    if data.get("banned") is True:
+        reason = (data.get("banned_reason") or "").strip() or None
+        with get_db() as conn:
+            conn.execute(
+                "UPDATE users SET banned = 1, banned_reason = ? WHERE id = ?",
+                (reason, user_id),
+            )
+            conn.commit()
+        log_admin_action(admin_id, "user_ban", user_id, reason or "")
+        return jsonify({"ok": True})
+
+    mute_minutes = data.get("mute_minutes")
+    if mute_minutes is not None:
+        try:
+            m = int(mute_minutes)
+        except (TypeError, ValueError):
+            return jsonify({"error": "mute_minutes должно быть числом"}), 400
+        if m <= 0 or m > 525600:  # max 1 year
+            return jsonify({"error": "Введите длительность мута от 1 до 525600 минут (год)"}), 400
+        until = utc_iso(utc_now() + timedelta(minutes=m))
+        with get_db() as conn:
+            conn.execute(
+                "UPDATE users SET muted_until = ? WHERE id = ?",
+                (until, user_id),
+            )
+            conn.commit()
+        log_admin_action(admin_id, "user_mute", user_id, f"{m} min until {until}")
+        return jsonify({"ok": True, "muted_until": until})
+
+    return jsonify({"error": "Укажите banned, mute_minutes, unban или unmute"}), 400
+
+
+@app.route("/api/admin/audit", methods=["GET"])
+@admin_required
+def api_admin_audit():
+    limit = min(200, max(10, int(request.args.get("limit", 50))))
+    with get_db() as conn:
+        rows = conn.execute(
+            """
+            SELECT a.id, a.admin_id, u.email AS admin_email, a.action, a.target_user_id,
+                   a.detail, a.created_at
+            FROM admin_audit a
+            LEFT JOIN users u ON u.id = a.admin_id
+            ORDER BY a.id DESC
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+    return jsonify({"entries": [dict(r) for r in rows]})
+
+
+@app.route("/api/admin/export/users.csv", methods=["GET"])
+@admin_required
+def api_admin_export_users_csv():
+    with get_db() as conn:
+        rows = conn.execute(
+            """
+            SELECT id, email, name, is_admin, banned, banned_reason, muted_until, created_at
+            FROM users ORDER BY id
+            """
+        ).fetchall()
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(
+        ["id", "email", "name", "is_admin", "banned", "banned_reason", "muted_until", "created_at"]
+    )
+    for r in rows:
+        d = dict(r)
+        w.writerow(
+            [
+                d["id"],
+                d["email"],
+                d.get("name") or "",
+                d["is_admin"],
+                d["banned"],
+                d.get("banned_reason") or "",
+                d.get("muted_until") or "",
+                d.get("created_at") or "",
+            ]
+        )
+    out = buf.getvalue()
+    return Response(
+        out.encode("utf-8-sig"),
+        mimetype="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="dashko_users.csv"'},
+    )
+
+
+@app.route("/api/admin/export/reviews.csv", methods=["GET"])
+@admin_required
+def api_admin_export_reviews_csv():
+    with get_db() as conn:
+        rows = conn.execute(
+            """
+            SELECT r.id, r.user_id, r.author_name, r.rating, r.text, r.created_at, u.email
+            FROM reviews r
+            LEFT JOIN users u ON u.id = r.user_id
+            ORDER BY r.id
+            """
+        ).fetchall()
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(["id", "user_id", "author_name", "rating", "text", "created_at", "user_email"])
+    for r in rows:
+        d = dict(r)
+        w.writerow(
+            [
+                d["id"],
+                d["user_id"],
+                d["author_name"],
+                d["rating"],
+                (d["text"] or "").replace("\r\n", " ").replace("\n", " "),
+                d.get("created_at") or "",
+                d.get("email") or "",
+            ]
+        )
+    out = buf.getvalue()
+    return Response(
+        out.encode("utf-8-sig"),
+        mimetype="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="dashko_reviews.csv"'},
+    )
+
+
+@app.route("/api/admin/reviews/bulk-delete", methods=["POST"])
+@admin_required
+def api_admin_reviews_bulk_delete():
+    admin_id = session.get("user_id")
+    data = request.get_json() or {}
+    ids = data.get("ids")
+    if not isinstance(ids, list) or not ids:
+        return jsonify({"error": "Передайте ids: [1, 2, 3]"}), 400
+    try:
+        int_ids = [int(x) for x in ids]
+    except (TypeError, ValueError):
+        return jsonify({"error": "Некорректные id"}), 400
+    if len(int_ids) > 500:
+        return jsonify({"error": "Максимум 500 за раз"}), 400
+    placeholders = ",".join("?" * len(int_ids))
+    with get_db() as conn:
+        cur = conn.execute(f"DELETE FROM reviews WHERE id IN ({placeholders})", int_ids)
+        conn.commit()
+        n = cur.rowcount
+    log_admin_action(admin_id, "reviews_bulk_delete", None, f"count={n}")
+    return jsonify({"ok": True, "deleted": n})
+
+
+@app.route("/api/admin/reviews/clear-all", methods=["POST"])
+@admin_required
+def api_admin_reviews_clear_all():
+    admin_id = session.get("user_id")
+    data = request.get_json() or {}
+    if data.get("confirm") != "DELETE_ALL_REVIEWS":
+        return jsonify({"error": 'В теле запроса укажите {"confirm": "DELETE_ALL_REVIEWS"}'}), 400
+    with get_db() as conn:
+        row = conn.execute("SELECT COUNT(*) FROM reviews").fetchone()
+        n = row[0]
+        conn.execute("DELETE FROM reviews")
+        conn.commit()
+    log_admin_action(admin_id, "reviews_clear_all", None, f"deleted={n}")
+    return jsonify({"ok": True, "deleted": n})
 
 
 # --- Статика ---

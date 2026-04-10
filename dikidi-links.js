@@ -23,7 +23,7 @@
     DIKIDI_BASE, /* 11: Обучение «макияж для себя» */
     DIKIDI_BASE, /* 12: Афро локоны */
     DIKIDI_BASE, /* 13: Прическа */
-    DIKIDI_BASE  /* 14: Пробный свадебный образ */
+    DIKIDI_BASE 
   ];
 
   function applyLinks() {
