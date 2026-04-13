@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Новости — Dashko Studio</title>
+  <link rel="icon" href="favicon.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=5">
+</head>
+<body>
+  <header class="header">
+    <div class="header-top">
+      <div class="container header-top-inner">
+        <a href="tel:+79920090279" class="header-phone">+7 (992) 009-02-79 MAX</a>
+        <div class="header-socials">
+          <a href="https://wa.me/79920090279" target="_blank" rel="noopener" aria-label="WhatsApp">WhatsApp</a>
+          <a href="https://t.me/DashkoStudio" target="_blank" rel="noopener" aria-label="Telegram">Telegram</a>
+          <a href="https://instagram.com/dashko_studio" target="_blank" rel="noopener" aria-label="Instagram">Instagram</a>
+          <a href="https://vk.com/dashko_studio" target="_blank" rel="noopener" aria-label="VK">VK</a>
+        </div>
+      </div>
+    </div>
+    <div class="container header-inner">
+      <a href="index.html" class="logo">Dashko Studio</a>
+      <nav class="nav">
+        <a href="index.html">Главная</a>
+        <a href="news.html">Новости</a>
+        <a href="index.html#prices">Прайс</a>
+        <a href="index.html#reviews">Отзывы</a>
+        <a href="index.html#contact">Контакты</a>
+        <span id="auth-block"><a href="#" id="auth-nav-link" class="nav-auth-link">Вход</a></span>
+        <span id="auth-nav-user" class="auth-nav-user" style="display:none;">
+          <img id="auth-nav-avatar" class="auth-nav-avatar-img" alt="" width="32" height="32" decoding="async">
+          <a href="#" id="profile-nav-link" class="nav-auth-link">Профиль</a>
+          <a href="admin.html" id="admin-nav-link" class="nav-auth-link" style="display:none;">Админ</a>
+          <button type="button" id="auth-logout" class="btn btn-outline" style="padding:6px 12px; font-size:0.9rem;">Выйти</button>
+        </span>
+        <a href="https://dikidi.ru/ru/profile/dashko_studio_1318724" class="btn btn-book" target="_blank" rel="noopener">Записаться</a>
+      </nav>
+      <button class="burger" aria-label="Меню">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+  </header>
+
+  <main class="news-page">
+    <section class="news-hero">
+      <div class="container">
+        <span class="section-label">Новости</span>
+        <h1 class="section-title">Новости Dashko Studio</h1>
+        <p class="section-desc">Только лента новостей студии: объявления, обновления, акции и важные новости.</p>
+      </div>
+    </section>
+
+    <section class="news-list-section">
+      <div class="container">
+        <div class="news-list-head">
+          <div>
+            <span class="section-label">Лента</span>
+            <h2 class="section-title">Последние публикации</h2>
+          </div>
+        </div>
+        <div id="news-empty" class="news-empty">Пока новостей нет. Первая публикация появится здесь.</div>
+        <div id="news-list" class="news-list"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <span class="logo">Dashko Studio</span>
+          <p class="footer-address">г. Екатеринбург, улица Павла Шаманова, 5/3</p>
+        </div>
+        <div class="footer-contacts">
+          <p class="footer-phone-row">
+            <img src="favicon.png" alt="" class="footer-phone-avatar">
+            <span>Макс: <a href="tel:+79920090279">+7 (992) 009-02-79 MAX</a></span>
+          </p>
+          <div class="footer-socials">
+            <a href="https://wa.me/79920090279" target="_blank" rel="noopener" aria-label="WhatsApp">WhatsApp</a>
+            <a href="https://t.me/DashkoStudio" target="_blank" rel="noopener" aria-label="Telegram">Telegram</a>
+            <a href="https://instagram.com/dashko_studio" target="_blank" rel="noopener" aria-label="Instagram">Instagram</a>
+            <a href="https://vk.com/dashko_studio" target="_blank" rel="noopener" aria-label="VK">VK</a>
+          </div>
+        </div>
+        <div class="footer-links">
+          <a href="index.html">Главная</a>
+          <a href="legal.html">Оферта и политика конфиденциальности</a>
+        </div>
+      </div>
+      <p class="footer-copy">© Dashko Studio</p>
+    </div>
+  </footer>
+
+  <a href="#" class="back-to-top" id="back-to-top" aria-label="Наверх">↑</a>
+
+  <div id="auth-modal" class="auth-modal" aria-hidden="true">
+    <div class="auth-modal-inner">
+      <button type="button" id="auth-modal-close" class="auth-modal-close" aria-label="Закрыть">×</button>
+      <h2 class="auth-modal-title">Вход / Регистрация</h2>
+      <div class="auth-tabs">
+        <button type="button" id="auth-tab-login" class="auth-tab is-active">Вход</button>
+        <button type="button" id="auth-tab-register" class="auth-tab">Регистрация</button>
+      </div>
+      <form id="auth-form" class="auth-form">
+        <div class="form-group" style="display:none;">
+          <label for="auth-name">Имя</label>
+          <input type="text" id="auth-name" class="form-input" placeholder="Как к вам обращаться" autocomplete="name">
+        </div>
+        <div class="form-group">
+          <label for="auth-email">Email</label>
+          <input type="email" id="auth-email" class="form-input" placeholder="email@example.com" autocomplete="username" required>
+        </div>
+        <div class="form-group">
+          <label for="auth-password">Пароль</label>
+          <input type="password" id="auth-password" class="form-input" placeholder="Не менее 6 символов" autocomplete="current-password" required minlength="6">
+        </div>
+        <p id="auth-message" class="form-msg"></p>
+        <button type="submit" class="btn btn-primary btn-block">Войти</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="profile-modal" class="auth-modal profile-modal" aria-hidden="true">
+    <div class="auth-modal-inner profile-modal-inner">
+      <button type="button" id="profile-modal-close" class="auth-modal-close" aria-label="Закрыть">×</button>
+      <h2 class="auth-modal-title">Профиль</h2>
+      <p id="profile-admin-badge" class="profile-admin-badge" style="display:none;">Администратор — доступна <a href="admin.html">админ-панель</a></p>
+      <form id="profile-form" class="auth-form profile-form">
+        <div class="profile-avatar-row">
+          <div class="profile-avatar-preview" id="profile-avatar-preview-wrap">
+            <img id="profile-avatar-preview-img" alt="">
+          </div>
+          <div class="profile-avatar-actions">
+            <label for="profile-avatar-file" class="btn btn-outline btn-sm">Выбрать фото</label>
+            <input type="file" id="profile-avatar-file" class="visually-hidden" accept="image/jpeg,image/png,image/webp,image/gif">
+            <button type="button" id="profile-avatar-clear" class="btn btn-outline btn-sm">Убрать фото</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="profile-name">Имя</label>
+          <input type="text" id="profile-name" class="form-input" maxlength="100" autocomplete="name">
+        </div>
+        <div class="form-group">
+          <label for="profile-email">Email</label>
+          <input type="email" id="profile-email" class="form-input" required autocomplete="email">
+        </div>
+        <p class="profile-password-hint">Смена пароля (необязательно)</p>
+        <div class="form-group">
+          <label for="profile-current-password">Текущий пароль</label>
+          <input type="password" id="profile-current-password" class="form-input" placeholder="Если меняете пароль" autocomplete="current-password">
+        </div>
+        <div class="form-group">
+          <label for="profile-new-password">Новый пароль</label>
+          <input type="password" id="profile-new-password" class="form-input" placeholder="Не менее 6 символов" autocomplete="new-password" minlength="6">
+        </div>
+        <p id="profile-message" class="form-msg"></p>
+        <button type="submit" class="btn btn-primary btn-block">Сохранить</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="auth-reviews.js"></script>
+  <script src="script.js?v=2"></script>
+  <script src="news.js?v=2"></script>
+</body>
+</html>

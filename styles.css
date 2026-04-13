@@ -1455,3 +1455,147 @@ ul { list-style: none; margin: 0; padding: 0; }
 .review-form .form-textarea { resize: vertical; min-height: 80px; }
 .review-form .btn { margin-top: 8px; }
 .form-msg { font-size: 0.9rem; color: var(--color-text-soft); margin: 12px 0 0; }
+
+/* --- News page --- */
+.news-page {
+  padding-top: 140px;
+}
+
+.news-hero,
+.news-publish,
+.news-list-section {
+  padding: 48px 0;
+}
+
+.news-publish-card,
+.news-card {
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.news-publish-card {
+  padding: 32px;
+}
+
+.news-publish-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.news-publish-note {
+  max-width: 420px;
+  margin: 0;
+  color: var(--color-text-soft);
+  font-size: 0.95rem;
+}
+
+.news-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.news-form .form-group {
+  margin-bottom: 16px;
+}
+
+.news-form .form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.news-form .form-input {
+  width: 100%;
+  padding: 10px 12px;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  border: 1px solid rgba(44, 42, 40, 0.2);
+  border-radius: var(--radius);
+}
+
+.news-form .form-textarea {
+  resize: vertical;
+  min-height: 150px;
+}
+
+.news-form-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.news-list {
+  display: grid;
+  gap: 24px;
+}
+
+.news-empty {
+  padding: 24px;
+  background: rgba(166, 124, 82, 0.08);
+  border-radius: var(--radius);
+  color: var(--color-text-soft);
+}
+
+.news-card {
+  padding: 28px;
+}
+
+.news-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  margin-bottom: 12px;
+  font-size: 0.9rem;
+  color: var(--color-text-soft);
+}
+
+.news-card-title {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 600;
+  margin: 0 0 12px;
+}
+
+.news-card-summary {
+  margin: 0 0 16px;
+  font-size: 1.05rem;
+  color: var(--color-text);
+}
+
+.news-card-content {
+  color: var(--color-text-soft);
+  line-height: 1.7;
+}
+
+@media (max-width: 768px) {
+  .news-page {
+    padding-top: 110px;
+  }
+
+  .news-hero,
+  .news-publish,
+  .news-list-section {
+    padding: 28px 0;
+  }
+
+  .news-publish-card,
+  .news-card {
+    padding: 20px;
+  }
+
+  .news-publish-head,
+  .news-form-grid {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  .news-card-title {
+    font-size: 1.5rem;
+  }
+}

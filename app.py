@@ -18,6 +18,7 @@ app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 
 DB_PATH = Path(__file__).resolve().parent / "dashko.db"
+NEWS_ADMIN_EMAIL = "admin@dashko.ru"
 
 
 def get_db():
@@ -45,11 +46,20 @@ def init_db():
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id)
             );
+            CREATE TABLE IF NOT EXISTS news_posts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                summary TEXT,
+                content TEXT NOT NULL,
+                author_name TEXT NOT NULL,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            );
         """)
     _migrate_users_avatar()
     _migrate_users_is_admin()
     _migrate_users_moderation()
     _migrate_admin_audit()
+    _migrate_news_posts()
 
 
 def _migrate_users_moderation():
@@ -82,6 +92,14 @@ def _migrate_admin_audit():
             );
         """)
         conn.commit()
+
+
+def _migrate_news_posts():
+    with get_db() as conn:
+        cols = {row[1] for row in conn.execute("PRAGMA table_info(news_posts)")}
+        if cols and "summary" not in cols:
+            conn.execute("ALTER TABLE news_posts ADD COLUMN summary TEXT")
+            conn.commit()
 
 
 def _migrate_users_is_admin():
@@ -197,6 +215,36 @@ def _fetch_user_row(conn, user_id: int):
            FROM users WHERE id = ?""",
         (user_id,),
     ).fetchone()
+
+
+def authenticate_admin_credentials(email: str, password: str):
+    email = (email or "").strip().lower()
+    password = password or ""
+    if not email or not password:
+        return None, "Укажите логин и пароль"
+
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT id, email, name, password_hash, is_admin, banned FROM users WHERE email = ?",
+            (email,),
+        ).fetchone()
+    if not row or not check_password(password, row["password_hash"]):
+        return None, "Неверный логин или пароль"
+    sync_admin_flag(row["id"], row["email"])
+    with get_db() as conn:
+        refreshed = conn.execute(
+            "SELECT id, email, name, is_admin, banned FROM users WHERE id = ?",
+            (row["id"],),
+        ).fetchone()
+    if not refreshed:
+        return None, "Пользователь не найден"
+    if refreshed["banned"]:
+        return None, "Аккаунт заблокирован"
+    if refreshed["email"].strip().lower() != NEWS_ADMIN_EMAIL:
+        return None, "Публиковать новости может только аккаунт admin@dashko.ru"
+    if not refreshed["is_admin"]:
+        return None, "Публиковать новости может только администратор"
+    return refreshed, None
 
 
 # --- API ---
@@ -361,6 +409,75 @@ def api_reviews_list():
             "SELECT id, author_name, rating, text, created_at FROM reviews ORDER BY created_at DESC"
         ).fetchall()
     return jsonify({"reviews": [dict(r) for r in rows]})
+
+
+@app.route("/api/news", methods=["GET"])
+def api_news_list():
+    with get_db() as conn:
+        rows = conn.execute(
+            """
+            SELECT id, title, summary, content, author_name, created_at
+            FROM news_posts
+            ORDER BY datetime(created_at) DESC, id DESC
+            """
+        ).fetchall()
+    return jsonify({"news": [dict(r) for r in rows]})
+
+
+@app.route("/api/news", methods=["POST"])
+def api_news_create():
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"error": "Для публикации новости войдите в аккаунт admin@dashko.ru"}), 401
+
+    with get_db() as conn:
+        admin_row = conn.execute(
+            "SELECT id, email, name, is_admin, banned FROM users WHERE id = ?",
+            (user_id,),
+        ).fetchone()
+
+    if not admin_row:
+        session.pop("user_id", None)
+        return jsonify({"error": "Пользователь не найден"}), 401
+    if admin_row["banned"]:
+        session.pop("user_id", None)
+        return jsonify({"error": "Аккаунт заблокирован"}), 403
+
+    sync_admin_flag(admin_row["id"], admin_row["email"])
+    with get_db() as conn:
+        admin_row = conn.execute(
+            "SELECT id, email, name, is_admin, banned FROM users WHERE id = ?",
+            (user_id,),
+        ).fetchone()
+
+    if admin_row["email"].strip().lower() != NEWS_ADMIN_EMAIL:
+        return jsonify({"error": "Публиковать новости может только аккаунт admin@dashko.ru"}), 403
+    if not admin_row["is_admin"]:
+        return jsonify({"error": "Аккаунт admin@dashko.ru должен быть назначен администратором"}), 403
+
+    data = request.get_json() or {}
+    title = (data.get("title") or "").strip()
+    summary = (data.get("summary") or "").strip()
+    content = (data.get("content") or "").strip()
+
+    if not title:
+        return jsonify({"error": "Укажите заголовок новости"}), 400
+    if not content:
+        return jsonify({"error": "Напишите текст новости"}), 400
+
+    author_name = (admin_row["name"] or admin_row["email"] or "Администратор").strip()
+    with get_db() as conn:
+        cur = conn.execute(
+            """
+            INSERT INTO news_posts (title, summary, content, author_name)
+            VALUES (?, ?, ?, ?)
+            """,
+            (title, summary or None, content, author_name),
+        )
+        conn.commit()
+        news_id = cur.lastrowid
+    log_admin_action(admin_row["id"], "news_create", None, f"news_id={news_id}; title={title}")
+    return jsonify({"ok": True, "id": news_id})
 
 
 @app.route("/api/reviews", methods=["POST"])
