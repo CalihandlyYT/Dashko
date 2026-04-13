@@ -1,5 +1,6 @@
 (function () {
   var API = '/api';
+  var API_UNAVAILABLE_MSG = 'Новости, вход и регистрация работают только когда сайт открыт через Flask-сервер. Запусти python main.py и открой http://127.0.0.1:8000 — на GitHub Pages backend и база данных не работают.';
 
   function api(method, path, body) {
     var opts = { method: method, credentials: 'include', headers: { 'Content-Type': 'application/json' } };
@@ -11,13 +12,17 @@
           try {
             data = JSON.parse(text);
           } catch (e) {
-            data = { error: text.slice(0, 200) };
+            data = {
+              error: (text.indexOf('<!') === 0 || text.indexOf('<html') === 0 || text.indexOf('<!DOCTYPE') === 0)
+                ? API_UNAVAILABLE_MSG
+                : 'Сервер вернул некорректный ответ. Проверь, что сайт запущен через python main.py.'
+            };
           }
         }
         return { ok: r.ok, status: r.status, data: data };
       });
     }).catch(function () {
-      return { ok: false, status: 0, data: { error: 'Не удалось подключиться к серверу. Запустите сайт через python main.py.' } };
+      return { ok: false, status: 0, data: { error: API_UNAVAILABLE_MSG } };
     });
   }
 
